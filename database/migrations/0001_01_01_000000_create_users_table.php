@@ -23,8 +23,16 @@ return new class extends Migration
             $table->string('username');
             $table->string('name')->nullable();
             $table->string('email')->unique();
-            $table->string('password');
+            $table->string('password')->nullable();
             $table->unsignedTinyInteger('role_id')->default(5);
+            $table->string('role')->nullable();
+            $table->text('permissions')->nullable();
+            $table->decimal('salary', 10, 2)->default(0);
+            $table->string('salary_type')->default('monthly');
+            $table->decimal('average_shift_hours', 5, 2)->default(8);
+            $table->date('hire_date')->nullable();
+            $table->string('receipt_prefix', 20)->nullable();
+            $table->string('status')->default('active');
             $table->rememberToken();
             $table->timestamps();
 

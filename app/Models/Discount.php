@@ -2,36 +2,32 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class ProductVariant extends Model
+class Discount extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
     protected $fillable = [
-        'product_id',
-        'product_sync_id',
-        'name',
-        'price_modifier',
-        'price',
-        'cost_price',
-        'stock',
-        'stock_alert_level',
+        'subscriber_id',
         'sync_id',
+        'sync_status',
+        'name',
+        'type',
+        'value',
+        'description',
+        'is_active',
     ];
 
     protected function casts(): array
     {
         return [
-            'price_modifier' => 'double',
-            'price' => 'double',
-            'cost_price' => 'double',
-            'stock' => 'integer',
-            'stock_alert_level' => 'integer',
+            'value'       => 'decimal:2',
+            'is_active'   => 'boolean',
+            'subscriber_id' => 'integer',
         ];
     }
 
@@ -46,8 +42,8 @@ class ProductVariant extends Model
         });
     }
 
-    public function product(): BelongsTo
+    public function subscriber(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Subscriber::class);
     }
 }

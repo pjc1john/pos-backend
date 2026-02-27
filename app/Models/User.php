@@ -21,6 +21,14 @@ class User extends Authenticatable
         'email',
         'role_id',
         'sync_id',
+        'role',
+        'permissions',
+        'salary',
+        'salary_type',
+        'average_shift_hours',
+        'hire_date',
+        'receipt_prefix',
+        'status',
     ];
 
     protected $hidden = [
@@ -34,6 +42,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role_id' => 'integer',
             'subscriber_id' => 'integer',
+            'salary' => 'decimal:2',
+            'average_shift_hours' => 'decimal:2',
         ];
     }
 

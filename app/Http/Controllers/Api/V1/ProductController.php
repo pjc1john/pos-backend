@@ -51,6 +51,18 @@ class ProductController extends Controller
 
         $validated['subscriber_id'] = $request->user()->subscriber_id;
 
+        if ($request->has('image_url') && !empty($request->image_url)) {
+
+            $image = base64_decode($request->image_url);
+            $filename = Str::uuid() . '.jpg';
+
+            Storage::disk('public')->put('product-images/' . $filename, $image);
+
+            $validated['image_url'] = '/storage/product-images/' . $filename;
+        } else {
+            $validated['image_url'] = null;
+        }
+
         $product = Product::create($validated);
 
         if ($request->has('variants')) {

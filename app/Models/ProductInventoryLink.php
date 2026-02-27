@@ -2,43 +2,32 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class ProductVariant extends Model
+class ProductInventoryLink extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
+
+    protected $table = 'product_inventory_links';
 
     protected $fillable = [
-        'product_id',
-        'product_sync_id',
-        'name',
-        'price_modifier',
-        'price',
-        'cost_price',
-        'stock',
-        'stock_alert_level',
         'sync_id',
+        'subscriber_id',
+        'product_id',
+        'inventory_item_id',
+        'quantity_per_unit',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'price_modifier' => 'double',
-            'price' => 'double',
-            'cost_price' => 'double',
-            'stock' => 'integer',
-            'stock_alert_level' => 'integer',
-        ];
-    }
+    protected $casts = [
+        'quantity_per_unit' => 'float',
+    ];
 
     protected static function boot(): void
     {
         parent::boot();
-
         static::creating(function ($model) {
             if (empty($model->sync_id)) {
                 $model->sync_id = (string) Str::uuid();
@@ -49,5 +38,10 @@ class ProductVariant extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function inventoryItem(): BelongsTo
+    {
+        return $this->belongsTo(InventoryItem::class);
     }
 }
