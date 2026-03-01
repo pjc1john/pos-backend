@@ -13,6 +13,7 @@ class Discount extends Model
 
     protected $fillable = [
         'subscriber_id',
+        'branch_id',
         'sync_id',
         'sync_status',
         'name',

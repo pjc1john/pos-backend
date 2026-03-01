@@ -22,8 +22,9 @@ Route::post('/login', [AuthController::class, 'login']);
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('v1')->group(function () {
-        // Batch sync
+        // Sync
         Route::post('/sync/batch', [SyncController::class, 'batch']);
+        Route::get('/sync/pull', [SyncController::class, 'pull']);
 
         // Products (singular for store/update, plural for delete — matches Flutter app)
         Route::get('/products', [ProductController::class, 'index']);

@@ -3,27 +3,40 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
+use App\Models\CashReconciliation;
+use App\Models\Discount;
+use App\Models\Dtr;
+use App\Models\Expense;
+use App\Models\InventoryItem;
+use App\Models\Product;
+use App\Models\ProductInventoryLink;
+use App\Models\ProductVariant;
+use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\SyncLog;
+use App\Models\User;
+use App\Models\VariantInventoryLink;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class SyncController extends Controller
 {
     private array $tableModelMap = [
-        'products'                  => \App\Models\Product::class,
-        'product_variants'          => \App\Models\ProductVariant::class,
-        'users'                     => \App\Models\User::class,
-        'sales'                     => \App\Models\Sale::class,
-        'sale_items'                => \App\Models\SaleItem::class,
-        'branches'                  => \App\Models\Branch::class,
-        'expenses'                  => \App\Models\Expense::class,
-        'cash_reconciliations'      => \App\Models\CashReconciliation::class,
-        'discounts'                 => \App\Models\Discount::class,
-        'dtr'                       => \App\Models\Dtr::class,
-        'inventory_items'           => \App\Models\InventoryItem::class,
-        'product_inventory_links'   => \App\Models\ProductInventoryLink::class,
-        'variant_inventory_links'   => \App\Models\VariantInventoryLink::class,
+        'products'                  => Product::class,
+        'product_variants'          => ProductVariant::class,
+        'users'                     => User::class,
+        'sales'                     => Sale::class,
+        'sale_items'                => SaleItem::class,
+        'branches'                  => Branch::class,
+        'expenses'                  => Expense::class,
+        'cash_reconciliations'      => CashReconciliation::class,
+        'discounts'                 => Discount::class,
+        'dtr'                       => Dtr::class,
+        'inventory_items'           => InventoryItem::class,
+        'product_inventory_links'   => ProductInventoryLink::class,
+        'variant_inventory_links'   => VariantInventoryLink::class,
     ];
 
     private array $stripFields = [
@@ -36,76 +49,77 @@ class SyncController extends Controller
         'password', // POS staff use local SHA-256 hash; stripped to avoid double-hashing
     ];
 
-    public function batch(Request $request)
+    public function batch(Request $request): JsonResponse
     {
-        Storage::disk("local")->put("batch.json", json_encode($request->all(), JSON_PRETTY_PRINT));
+        Storage::disk('local')->put('batch.json', json_encode($request->all(), JSON_PRETTY_PRINT));
         $request->validate([
-            'device_id' => 'required|string',
-            'records' => 'required|array',
-            'records.*.table' => 'required|string',
-            'records.*.local_id' => 'required|integer',
-            'records.*.operation' => 'required|string|in:insert,update,delete,INSERT,UPDATE,DELETE',
-            'records.*.data' => 'required|array',
+            'device_id'            => 'required|string',
+            'records'              => 'required|array',
+            'records.*.table'      => 'required|string',
+            'records.*.local_id'   => 'required|integer',
+            'records.*.operation'  => 'required|string|in:insert,update,delete,INSERT,UPDATE,DELETE',
+            'records.*.data'       => 'required|array',
         ]);
 
         $subscriberId = $request->user()->subscriber_id;
-        $deviceId = $request->device_id;
-        $synced = [];
-        $failed = [];
-        $conflicts = [];
+        $deviceId     = $request->device_id;
+        $synced       = [];
+        $failed       = [];
+        $conflicts    = [];
 
         foreach ($request->records as $record) {
             try {
                 $result = $this->processRecord($record, $subscriberId, $deviceId);
 
                 match ($result['status']) {
-                    'synced' => $synced[] = $result['data'],
+                    'synced'   => $synced[]    = $result['data'],
                     'conflict' => $conflicts[] = $result['data'],
-                    'failed' => $failed[] = $result['data'],
+                    'failed'   => $failed[]    = $result['data'],
                 };
             } catch (\Exception $e) {
                 $failed[] = [
-                    'table' => $record['table'],
+                    'table'    => $record['table'],
                     'local_id' => $record['local_id'],
-                    'error' => $e->getMessage(),
+                    'error'    => $e->getMessage(),
                 ];
 
-                //truncate error message to prevent excessively long logs
-                $error_message = strlen($e->getMessage()) > 1000 ? substr($e->getMessage(), 0, 1000) . '... (truncated)' : $e->getMessage();
+                $errorMessage = strlen($e->getMessage()) > 1000
+                    ? substr($e->getMessage(), 0, 1000) . '... (truncated)'
+                    : $e->getMessage();
 
                 SyncLog::create([
-                    'device_id' => $deviceId,
-                    'table_name' => $record['table'],
-                    'record_id' => $record['local_id'],
-                    'operation' => $record['operation'],
-                    'status' => 'failed',
-                    'error_message' => $error_message,
-                    'payload' => $record['data'],
+                    'device_id'     => $deviceId,
+                    'table_name'    => $record['table'],
+                    'record_id'     => $record['local_id'],
+                    'operation'     => $record['operation'],
+                    'status'        => 'failed',
+                    'error_message' => $errorMessage,
+                    'payload'       => $record['data'],
                 ]);
             }
         }
 
         return response()->json([
-            'synced' => $synced,
-            'failed' => $failed,
+            'synced'    => $synced,
+            'failed'    => $failed,
             'conflicts' => $conflicts,
         ]);
     }
 
     private function processRecord(array $record, int $subscriberId, string $deviceId): array
     {
-        $table = $record['table'];
-        $localId = $record['local_id'];
+        $table     = $record['table'];
+        $localId   = $record['local_id'];
         $operation = strtolower($record['operation']);
-        $data = collect($record['data'])->except($this->stripFields)->toArray();
+        $data      = collect($record['data'])->except($this->stripFields)->toArray();
 
         if (! isset($this->tableModelMap[$table])) {
             return [
                 'status' => 'failed',
-                'data' => [
-                    'table' => $table,
+                'data'   => [
+                    'table'    => $table,
                     'local_id' => $localId,
-                    'error' => "Unknown table: {$table}",
+                    'error'    => "Unknown table: {$table}",
                 ],
             ];
         }
@@ -119,13 +133,13 @@ class SyncController extends Controller
         // Resolve client sync_ids to server IDs for link tables
         if ($table === 'product_inventory_links') {
             if (! empty($data['product_sync_id'])) {
-                $product = \App\Models\Product::where('sync_id', $data['product_sync_id'])->first();
+                $product = Product::where('sync_id', $data['product_sync_id'])->first();
                 if ($product) {
                     $data['product_id'] = $product->id;
                 }
             }
             if (! empty($data['inventory_item_sync_id'])) {
-                $item = \App\Models\InventoryItem::where('sync_id', $data['inventory_item_sync_id'])->first();
+                $item = InventoryItem::where('sync_id', $data['inventory_item_sync_id'])->first();
                 if ($item) {
                     $data['inventory_item_id'] = $item->id;
                 }
@@ -135,13 +149,13 @@ class SyncController extends Controller
 
         if ($table === 'variant_inventory_links') {
             if (! empty($data['variant_sync_id'])) {
-                $variant = \App\Models\ProductVariant::where('sync_id', $data['variant_sync_id'])->first();
+                $variant = ProductVariant::where('sync_id', $data['variant_sync_id'])->first();
                 if ($variant) {
                     $data['variant_id'] = $variant->id;
                 }
             }
             if (! empty($data['inventory_item_sync_id'])) {
-                $item = \App\Models\InventoryItem::where('sync_id', $data['inventory_item_sync_id'])->first();
+                $item = InventoryItem::where('sync_id', $data['inventory_item_sync_id'])->first();
                 if ($item) {
                     $data['inventory_item_id'] = $item->id;
                 }
@@ -151,7 +165,7 @@ class SyncController extends Controller
 
         // Resolve product_sync_id → product_id for product_variants
         if ($table === 'product_variants' && ! empty($data['product_sync_id'])) {
-            $product = \App\Models\Product::where('sync_id', $data['product_sync_id'])->first();
+            $product = Product::where('sync_id', $data['product_sync_id'])->first();
             if ($product) {
                 $data['product_id'] = $product->id;
             }
@@ -160,16 +174,28 @@ class SyncController extends Controller
 
         // Resolve sale_sync_id → sale_id for sale_items
         if ($table === 'sale_items' && ! empty($data['sale_sync_id'])) {
-            $sale = \App\Models\Sale::where('sync_id', $data['sale_sync_id'])->first();
+            $sale = Sale::where('sync_id', $data['sale_sync_id'])->first();
             if ($sale) {
                 $data['sale_id'] = $sale->id;
             }
             unset($data['sale_sync_id']);
         }
 
-        // Resolve branch_sync_id → branch_id for branch-scoped tables
-        if (in_array($table, ['expenses', 'cash_reconciliations', 'dtr']) && ! empty($data['branch_sync_id'])) {
-            $branch = \App\Models\Branch::where('sync_id', $data['branch_sync_id'])->first();
+        // Resolve branch_sync_id → branch_id for all branch-scoped tables
+        $tablesWithBranchId = [
+            'expenses',
+            'cash_reconciliations',
+            'dtr',
+            'inventory_items',
+            'products',
+            'product_variants',
+            'discounts',
+            'sale_items',
+            'product_inventory_links',
+            'variant_inventory_links',
+        ];
+        if (in_array($table, $tablesWithBranchId) && ! empty($data['branch_sync_id'])) {
+            $branch = Branch::where('sync_id', $data['branch_sync_id'])->first();
             if ($branch) {
                 $data['branch_id'] = $branch->id;
             }
@@ -180,12 +206,12 @@ class SyncController extends Controller
             'insert' => $this->handleInsert($modelClass, $table, $localId, $data, $record['data'], $deviceId),
             'update' => $this->handleUpdate($modelClass, $table, $localId, $data, $record['data'], $deviceId),
             'delete' => $this->handleDelete($modelClass, $table, $localId, $record['data'], $deviceId),
-            default => [
+            default  => [
                 'status' => 'failed',
-                'data' => [
-                    'table' => $table,
+                'data'   => [
+                    'table'    => $table,
                     'local_id' => $localId,
-                    'error' => "Unknown operation: {$operation}",
+                    'error'    => "Unknown operation: {$operation}",
                 ],
             ],
         };
@@ -200,10 +226,10 @@ class SyncController extends Controller
             if ($existing) {
                 return [
                     'status' => 'synced',
-                    'data' => [
-                        'table' => $table,
-                        'local_id' => $localId,
-                        'server_id' => $existing->sync_id,
+                    'data'   => [
+                        'table'             => $table,
+                        'local_id'          => $localId,
+                        'server_id'         => $existing->sync_id,
                         'server_updated_at' => $existing->updated_at->toIso8601String(),
                     ],
                 ];
@@ -218,10 +244,10 @@ class SyncController extends Controller
             if ($existing) {
                 return [
                     'status' => 'synced',
-                    'data' => [
-                        'table' => $table,
-                        'local_id' => $localId,
-                        'server_id' => $existing->sync_id,
+                    'data'   => [
+                        'table'             => $table,
+                        'local_id'          => $localId,
+                        'server_id'         => $existing->sync_id,
                         'server_updated_at' => $existing->updated_at->toIso8601String(),
                     ],
                 ];
@@ -236,10 +262,10 @@ class SyncController extends Controller
             if ($existing) {
                 return [
                     'status' => 'synced',
-                    'data' => [
-                        'table' => $table,
-                        'local_id' => $localId,
-                        'server_id' => $existing->sync_id,
+                    'data'   => [
+                        'table'             => $table,
+                        'local_id'          => $localId,
+                        'server_id'         => $existing->sync_id,
                         'server_updated_at' => $existing->updated_at->toIso8601String(),
                     ],
                 ];
@@ -247,7 +273,7 @@ class SyncController extends Controller
         }
 
         // Dedup for link tables: upsert on the natural composite key
-        if (\in_array($table, ['product_inventory_links', 'variant_inventory_links'])) {
+        if (in_array($table, ['product_inventory_links', 'variant_inventory_links'])) {
             $fkColumn = $table === 'product_inventory_links' ? 'product_id' : 'variant_id';
             if (! empty($data[$fkColumn]) && ! empty($data['inventory_item_id'])) {
                 $existing = $modelClass::where($fkColumn, $data[$fkColumn])
@@ -271,20 +297,20 @@ class SyncController extends Controller
         $model = $modelClass::create($data);
 
         SyncLog::create([
-            'device_id' => $deviceId,
+            'device_id'  => $deviceId,
             'table_name' => $table,
-            'record_id' => $model->id,
-            'operation' => 'INSERT',
-            'status' => 'success',
-            'payload' => $data,
+            'record_id'  => $model->id,
+            'operation'  => 'INSERT',
+            'status'     => 'success',
+            'payload'    => $data,
         ]);
 
         return [
             'status' => 'synced',
-            'data' => [
-                'table' => $table,
-                'local_id' => $localId,
-                'server_id' => $model->sync_id,
+            'data'   => [
+                'table'             => $table,
+                'local_id'          => $localId,
+                'server_id'         => $model->sync_id,
                 'server_updated_at' => $model->updated_at->toIso8601String(),
             ],
         ];
@@ -292,8 +318,7 @@ class SyncController extends Controller
 
     private function handleUpdate(string $modelClass, string $table, int $localId, array $data, array $rawData, string $deviceId): array
     {
-        // Find by sync_id first
-        $model = null;
+        $model  = null;
         $syncId = $rawData['sync_id'] ?? null;
 
         if ($syncId) {
@@ -310,9 +335,9 @@ class SyncController extends Controller
         if ($clientServerUpdatedAt && $model->updated_at->toIso8601String() !== $clientServerUpdatedAt) {
             return [
                 'status' => 'conflict',
-                'data' => [
-                    'table' => $table,
-                    'local_id' => $localId,
+                'data'   => [
+                    'table'       => $table,
+                    'local_id'    => $localId,
                     'server_data' => $model->toArray(),
                 ],
             ];
@@ -321,20 +346,20 @@ class SyncController extends Controller
         $model->update($data);
 
         SyncLog::create([
-            'device_id' => $deviceId,
+            'device_id'  => $deviceId,
             'table_name' => $table,
-            'record_id' => $model->id,
-            'operation' => 'UPDATE',
-            'status' => 'success',
-            'payload' => $data,
+            'record_id'  => $model->id,
+            'operation'  => 'UPDATE',
+            'status'     => 'success',
+            'payload'    => $data,
         ]);
 
         return [
             'status' => 'synced',
-            'data' => [
-                'table' => $table,
-                'local_id' => $localId,
-                'server_id' => $model->sync_id,
+            'data'   => [
+                'table'             => $table,
+                'local_id'          => $localId,
+                'server_id'         => $model->sync_id,
                 'server_updated_at' => $model->updated_at->toIso8601String(),
             ],
         ];
@@ -351,10 +376,10 @@ class SyncController extends Controller
             // Already deleted or never existed — treat as success
             return [
                 'status' => 'synced',
-                'data' => [
-                    'table' => $table,
-                    'local_id' => $localId,
-                    'server_id' => null,
+                'data'   => [
+                    'table'             => $table,
+                    'local_id'          => $localId,
+                    'server_id'         => null,
                     'server_updated_at' => now()->toIso8601String(),
                 ],
             ];
@@ -364,21 +389,93 @@ class SyncController extends Controller
         $model->delete();
 
         SyncLog::create([
-            'device_id' => $deviceId,
+            'device_id'  => $deviceId,
             'table_name' => $table,
-            'record_id' => $localId,
-            'operation' => 'DELETE',
-            'status' => 'success',
+            'record_id'  => $localId,
+            'operation'  => 'DELETE',
+            'status'     => 'success',
         ]);
 
         return [
             'status' => 'synced',
-            'data' => [
-                'table' => $table,
-                'local_id' => $localId,
-                'server_id' => $syncId,
+            'data'   => [
+                'table'             => $table,
+                'local_id'          => $localId,
+                'server_id'         => $syncId,
                 'server_updated_at' => now()->toIso8601String(),
             ],
         ];
+    }
+
+    /**
+     * Pull all records changed on the server since a given timestamp.
+     *
+     * GET /api/v1/sync/pull?updated_since=<ISO8601>
+     *
+     * Response:
+     * {
+     *   "success": true,
+     *   "data": { "branches": [...], "users": [...], ... },
+     *   "deleted": { "branches": ["uuid1", ...], ... }
+     * }
+     *
+     * The POS app uses this to receive server-initiated changes (admin created
+     * new branches, staff, discounts, etc.) and update its local SQLite database.
+     */
+    public function pull(Request $request): JsonResponse
+    {
+        $subscriberId = $request->user()->subscriber_id;
+        $updatedSince = $request->query('updated_since');
+        Storage::disk('local')->put("pullsync.json", json_encode($request->all()));
+        // Tables the POS reads from the server.
+        // Products are handled separately by the dedicated /api/v1/products endpoint.
+        $pullableModels = [
+            'branches'             => Branch::class,
+            'users'                => User::class,
+            'discounts'            => Discount::class,
+            'inventory_items'      => InventoryItem::class,
+            'expenses'             => Expense::class,
+            'dtr'                  => Dtr::class,
+            'cash_reconciliations' => CashReconciliation::class,
+        ];
+
+        $data    = [];
+        $deleted = [];
+
+        foreach ($pullableModels as $tableName => $modelClass) {
+            // Build query scoped to this subscriber
+            $query = $modelClass::where('subscriber_id', $subscriberId);
+
+            if ($updatedSince) {
+                $query->where('updated_at', '>', $updatedSince);
+            }
+
+            $records = $query->get();
+            if ($records->isNotEmpty()) {
+                $data[$tableName] = $records->toArray();
+            }
+
+            // Collect soft-deleted records so the POS can remove them locally
+            if ($updatedSince) {
+                $deletedIds = $modelClass::withTrashed()
+                    ->where('subscriber_id', $subscriberId)
+                    ->whereNotNull('deleted_at')
+                    ->where('deleted_at', '>', $updatedSince)
+                    ->pluck('sync_id')
+                    ->filter()
+                    ->values()
+                    ->toArray();
+
+                if (! empty($deletedIds)) {
+                    $deleted[$tableName] = $deletedIds;
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+            'deleted' => $deleted,
+        ]);
     }
 }

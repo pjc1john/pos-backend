@@ -16,6 +16,7 @@ class ProductInventoryLink extends Model
     protected $fillable = [
         'sync_id',
         'subscriber_id',
+        'branch_id',
         'product_id',
         'inventory_item_id',
         'quantity_per_unit',

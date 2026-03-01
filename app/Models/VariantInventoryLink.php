@@ -16,6 +16,7 @@ class VariantInventoryLink extends Model
     protected $fillable = [
         'sync_id',
         'subscriber_id',
+        'branch_id',
         'variant_id',
         'inventory_item_id',
         'quantity_per_unit',

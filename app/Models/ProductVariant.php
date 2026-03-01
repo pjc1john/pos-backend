@@ -15,6 +15,8 @@ class ProductVariant extends Model
     protected $fillable = [
         'product_id',
         'product_sync_id',
+        'subscriber_id',
+        'branch_id',
         'name',
         'price_modifier',
         'price',

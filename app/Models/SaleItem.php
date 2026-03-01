@@ -13,6 +13,8 @@ class SaleItem extends Model
     protected $fillable = [
         'sync_id',
         'sync_status',
+        'subscriber_id',
+        'branch_id',
         'sale_id',
         'sale_sync_id',
         'product_name',
