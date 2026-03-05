@@ -20,6 +20,8 @@ class ProductVariantController extends Controller
             'cost_price' => 'nullable|numeric',
             'stock' => 'nullable|integer',
             'stock_alert_level' => 'nullable|integer',
+            'branch_id' => 'nullable|integer',
+            'subscriber_id' => 'nullable|integer'
         ]);
 
         $productExist = Product::where('sync_id', $validated['product_id'])->first();
@@ -27,6 +29,7 @@ class ProductVariantController extends Controller
         if ($productExist) {
 
             $validated['product_id'] = $productExist->id;
+            $validated['subscriber_id'] = $request->user()->subscriber_id;
 
             $variant = ProductVariant::create($validated);
 
@@ -53,11 +56,13 @@ class ProductVariantController extends Controller
             'cost_price' => 'nullable|numeric',
             'stock' => 'nullable|integer',
             'stock_alert_level' => 'nullable|integer',
+            'branch_id' => 'nullable|integer',
         ]);
 
 
         if ($variant) {
             $validated['product_id'] = $variant->product_id;
+            $validated['subscriber_id'] = $request->user()->subscriber_id;
             $variant->update($validated);
 
             return response()->json([
