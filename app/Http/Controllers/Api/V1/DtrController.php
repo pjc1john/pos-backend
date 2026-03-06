@@ -55,6 +55,7 @@ class DtrController extends Controller
         $dtr = Dtr::create([
             'subscriber_id' => $subscriberId,
             'sync_id'       => $request->sync_id,
+            'branch_id'     => $request->branch_id,
             'username'      => $request->username,
             'time_in'       => $request->time_in,
             'date'          => $request->date,
@@ -77,6 +78,7 @@ class DtrController extends Controller
             ->firstOrFail();
 
         $dtr->update([
+            'branch_id'     => $request->branch_id,
             'time_out'    => $request->time_out,
             'total_hours' => $request->total_hours,
         ]);

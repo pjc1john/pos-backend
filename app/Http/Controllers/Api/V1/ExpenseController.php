@@ -52,6 +52,7 @@ class ExpenseController extends Controller
 
         $expense = Expense::create([
             'subscriber_id' => $subscriberId,
+            'branch_id'     => $request->branch_id, // New field for branch association
             'sync_id'       => $request->sync_id,
             'category'      => $request->category,
             'amount'        => $request->amount,
@@ -80,6 +81,7 @@ class ExpenseController extends Controller
             ->firstOrFail();
 
         $expense->update(array_filter([
+            'branch_id'    => $request->branch_id,
             'category'    => $request->category,
             'amount'      => $request->amount,
             'description' => $request->description,
