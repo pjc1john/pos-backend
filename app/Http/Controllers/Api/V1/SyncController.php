@@ -8,10 +8,12 @@ use App\Models\CashReconciliation;
 use App\Models\Discount;
 use App\Models\Dtr;
 use App\Models\Expense;
+use App\Models\InventoryAdjustment;
 use App\Models\InventoryItem;
 use App\Models\LemonJuiceExtraction;
 use App\Models\Product;
 use App\Models\ProductInventoryLink;
+use App\Models\ProductRecipeItem;
 use App\Models\ProductVariant;
 use App\Models\Sale;
 use App\Models\SaleItem;
@@ -36,6 +38,8 @@ class SyncController extends Controller
         'discounts'                 => Discount::class,
         'dtr'                       => Dtr::class,
         'inventory_items'           => InventoryItem::class,
+        'inventory_adjustments'     => InventoryAdjustment::class,
+        'product_recipe_items'      => ProductRecipeItem::class,
         'product_inventory_links'   => ProductInventoryLink::class,
         'variant_inventory_links'   => VariantInventoryLink::class,
         'lemon_juice_extractions'   => LemonJuiceExtraction::class,
@@ -48,7 +52,6 @@ class SyncController extends Controller
         'sync_error',
         'server_updated_at',
         'id',
-        'password', // POS staff use local SHA-256 hash; stripped to avoid double-hashing
     ];
 
     public function batch(Request $request): JsonResponse
@@ -183,8 +186,33 @@ class SyncController extends Controller
             unset($data['sale_sync_id']);
         }
 
-        // Resolve inventory_item_sync_id → inventory_item_id for lemon_juice_extractions
-        if ($table === 'lemon_juice_extractions' && ! empty($data['inventory_item_sync_id'])) {
+        // Resolve product_sync_id / variant_sync_id / inventory_item_sync_id for product_recipe_items
+        if ($table === 'product_recipe_items') {
+            if (! empty($data['product_sync_id'])) {
+                $product = Product::where('sync_id', $data['product_sync_id'])->first();
+                if ($product) {
+                    $data['product_id'] = $product->id;
+                }
+                unset($data['product_sync_id']);
+            }
+            if (! empty($data['variant_sync_id'])) {
+                $variant = ProductVariant::where('sync_id', $data['variant_sync_id'])->first();
+                if ($variant) {
+                    $data['variant_id'] = $variant->id;
+                }
+                unset($data['variant_sync_id']);
+            }
+            if (! empty($data['inventory_item_sync_id'])) {
+                $item = InventoryItem::where('sync_id', $data['inventory_item_sync_id'])->first();
+                if ($item) {
+                    $data['inventory_item_id'] = $item->id;
+                }
+                unset($data['inventory_item_sync_id']);
+            }
+        }
+
+        // Resolve inventory_item_sync_id → inventory_item_id for lemon_juice_extractions and inventory_adjustments
+        if (in_array($table, ['lemon_juice_extractions', 'inventory_adjustments']) && ! empty($data['inventory_item_sync_id'])) {
             $item = InventoryItem::where('sync_id', $data['inventory_item_sync_id'])->first();
             if ($item) {
                 $data['inventory_item_id'] = $item->id;
@@ -198,8 +226,10 @@ class SyncController extends Controller
             'cash_reconciliations',
             'dtr',
             'inventory_items',
+            'inventory_adjustments',
             'products',
             'product_variants',
+            'product_recipe_items',
             'discounts',
             'sale_items',
             'product_inventory_links',
