@@ -22,6 +22,9 @@ class SaleController extends Controller
             'payment_method' => 'required|string',
             'amount_received' => 'nullable|numeric',
             'change_amount' => 'nullable|numeric',
+            'status' => 'nullable|string',
+            'voided_by' => 'nullable|string',
+            'voided_at' => 'nullable|string',
             'created_at' => 'nullable|string',
             'items' => 'nullable|array',
             'items.*.product_name' => 'required_with:items|string',
@@ -58,6 +61,9 @@ class SaleController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'amount_received' => $validated['amount_received'] ?? 0,
                 'change_amount' => $validated['change_amount'] ?? 0,
+                'status' => $validated['status'] ?? null,
+                'voided_by' => $validated['voided_by'] ?? null,
+                'voided_at' => $validated['voided_at'] ?? null,
                 'created_at' => $validated['created_at'] ?? now(),
             ]);
 

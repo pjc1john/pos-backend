@@ -23,6 +23,9 @@ class Sale extends Model
         'payment_method',
         'amount_received',
         'change_amount',
+        'status',
+        'voided_by',
+        'voided_at',
         'created_at',
     ];
 
