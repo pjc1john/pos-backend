@@ -9,6 +9,7 @@ use App\Models\Discount;
 use App\Models\Dtr;
 use App\Models\Expense;
 use App\Models\InventoryItem;
+use App\Models\LemonJuiceExtraction;
 use App\Models\Product;
 use App\Models\ProductInventoryLink;
 use App\Models\ProductVariant;
@@ -37,6 +38,7 @@ class SyncController extends Controller
         'inventory_items'           => InventoryItem::class,
         'product_inventory_links'   => ProductInventoryLink::class,
         'variant_inventory_links'   => VariantInventoryLink::class,
+        'lemon_juice_extractions'   => LemonJuiceExtraction::class,
     ];
 
     private array $stripFields = [
@@ -181,6 +183,15 @@ class SyncController extends Controller
             unset($data['sale_sync_id']);
         }
 
+        // Resolve inventory_item_sync_id → inventory_item_id for lemon_juice_extractions
+        if ($table === 'lemon_juice_extractions' && ! empty($data['inventory_item_sync_id'])) {
+            $item = InventoryItem::where('sync_id', $data['inventory_item_sync_id'])->first();
+            if ($item) {
+                $data['inventory_item_id'] = $item->id;
+            }
+            unset($data['inventory_item_sync_id']);
+        }
+
         // Resolve branch_sync_id → branch_id for all branch-scoped tables
         $tablesWithBranchId = [
             'expenses',
@@ -193,6 +204,7 @@ class SyncController extends Controller
             'sale_items',
             'product_inventory_links',
             'variant_inventory_links',
+            'lemon_juice_extractions',
         ];
         if (in_array($table, $tablesWithBranchId) && ! empty($data['branch_sync_id'])) {
             $branch = Branch::where('sync_id', $data['branch_sync_id'])->first();
@@ -430,13 +442,14 @@ class SyncController extends Controller
         // Tables the POS reads from the server.
         // Products are handled separately by the dedicated /api/v1/products endpoint.
         $pullableModels = [
-            'branches'             => Branch::class,
-            'users'                => User::class,
-            'discounts'            => Discount::class,
-            'inventory_items'      => InventoryItem::class,
-            'expenses'             => Expense::class,
-            'dtr'                  => Dtr::class,
-            'cash_reconciliations' => CashReconciliation::class,
+            'branches'                => Branch::class,
+            'users'                   => User::class,
+            'discounts'               => Discount::class,
+            'inventory_items'         => InventoryItem::class,
+            'expenses'                => Expense::class,
+            'dtr'                     => Dtr::class,
+            'cash_reconciliations'    => CashReconciliation::class,
+            'lemon_juice_extractions' => LemonJuiceExtraction::class,
         ];
 
         $data    = [];

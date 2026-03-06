@@ -23,17 +23,19 @@ class ProductVariant extends Model
         'cost_price',
         'stock',
         'stock_alert_level',
+        'juice_ml_per_unit',
         'sync_id',
     ];
 
     protected function casts(): array
     {
         return [
-            'price_modifier' => 'double',
-            'price' => 'double',
-            'cost_price' => 'double',
-            'stock' => 'integer',
+            'price_modifier'    => 'double',
+            'price'             => 'double',
+            'cost_price'        => 'double',
+            'stock'             => 'integer',
             'stock_alert_level' => 'integer',
+            'juice_ml_per_unit' => 'double',
         ];
     }
 

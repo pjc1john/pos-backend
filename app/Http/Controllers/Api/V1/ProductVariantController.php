@@ -13,15 +13,16 @@ class ProductVariantController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'product_id' => 'required|exists:products,sync_id',
-            'name' => 'required|string',
-            'price_modifier' => 'nullable|numeric',
-            'price' => 'nullable|numeric',
-            'cost_price' => 'nullable|numeric',
-            'stock' => 'nullable|integer',
+            'product_id'        => 'required|exists:products,sync_id',
+            'name'              => 'required|string',
+            'price_modifier'    => 'nullable|numeric',
+            'price'             => 'nullable|numeric',
+            'cost_price'        => 'nullable|numeric',
+            'stock'             => 'nullable|integer',
             'stock_alert_level' => 'nullable|integer',
-            'branch_id' => 'nullable|integer',
-            'subscriber_id' => 'nullable|integer'
+            'juice_ml_per_unit' => 'nullable|numeric',
+            'branch_id'         => 'nullable|integer',
+            'subscriber_id'     => 'nullable|integer',
         ]);
 
         $productExist = Product::where('sync_id', $validated['product_id'])->first();
@@ -50,13 +51,14 @@ class ProductVariantController extends Controller
         $variant = ProductVariant::where('sync_id', $id)->firstOrFail();
 
         $validated = $request->validate([
-            'name' => 'required|string',
-            'price_modifier' => 'nullable|numeric',
-            'price' => 'nullable|numeric',
-            'cost_price' => 'nullable|numeric',
-            'stock' => 'nullable|integer',
+            'name'              => 'required|string',
+            'price_modifier'    => 'nullable|numeric',
+            'price'             => 'nullable|numeric',
+            'cost_price'        => 'nullable|numeric',
+            'stock'             => 'nullable|integer',
             'stock_alert_level' => 'nullable|integer',
-            'branch_id' => 'nullable|integer',
+            'juice_ml_per_unit' => 'nullable|numeric',
+            'branch_id'         => 'nullable|integer',
         ]);
 
 

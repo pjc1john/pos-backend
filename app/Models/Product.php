@@ -23,6 +23,7 @@ class Product extends Model
         'description',
         'stock',
         'stock_alert_level',
+        'juice_ml_per_unit',
         'image_url',
         'sync_id',
     ];
@@ -30,11 +31,12 @@ class Product extends Model
     protected function casts(): array
     {
         return [
-            'price' => 'double',
-            'cost_price' => 'double',
-            'stock' => 'integer',
+            'price'             => 'double',
+            'cost_price'        => 'double',
+            'stock'             => 'integer',
             'stock_alert_level' => 'integer',
-            'subscriber_id' => 'integer',
+            'juice_ml_per_unit' => 'double',
+            'subscriber_id'     => 'integer',
         ];
     }
 

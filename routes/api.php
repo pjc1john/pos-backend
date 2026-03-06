@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\DiscountController;
 use App\Http\Controllers\Api\V1\DtrController;
 use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\InventoryItemController;
+use App\Http\Controllers\Api\V1\LemonJuiceExtractionController;
 use App\Http\Controllers\Api\V1\StaffController;
 use App\Http\Controllers\Api\V1\SyncController;
 use Illuminate\Support\Facades\Route;
@@ -78,5 +79,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/dtr', [DtrController::class, 'store']);
         Route::put('/dtr/{syncId}', [DtrController::class, 'update']);
         Route::delete('/dtr/{syncId}', [DtrController::class, 'destroy']);
+
+        // Lemon Juice Extractions
+        Route::get('/lemon-juice-extractions', [LemonJuiceExtractionController::class, 'index']);
+        Route::post('/lemon-juice-extraction', [LemonJuiceExtractionController::class, 'store']);
+        Route::put('/lemon-juice-extraction/{syncId}', [LemonJuiceExtractionController::class, 'update']);
+        Route::delete('/lemon-juice-extraction/{syncId}', [LemonJuiceExtractionController::class, 'destroy']);
     });
 });
