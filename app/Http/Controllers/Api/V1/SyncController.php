@@ -20,6 +20,7 @@ use App\Models\SaleItem;
 use App\Models\SyncLog;
 use App\Models\User;
 use App\Models\VariantInventoryLink;
+use App\Models\VoidRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -43,6 +44,7 @@ class SyncController extends Controller
         'product_inventory_links'   => ProductInventoryLink::class,
         'variant_inventory_links'   => VariantInventoryLink::class,
         'lemon_juice_extractions'   => LemonJuiceExtraction::class,
+        'void_requests'             => VoidRequest::class,
     ];
 
     private array $stripFields = [
@@ -235,6 +237,7 @@ class SyncController extends Controller
             'product_inventory_links',
             'variant_inventory_links',
             'lemon_juice_extractions',
+            'void_requests',
         ];
         if (in_array($table, $tablesWithBranchId) && ! empty($data['branch_sync_id'])) {
             $branch = Branch::where('sync_id', $data['branch_sync_id'])->first();
@@ -480,6 +483,7 @@ class SyncController extends Controller
             'dtr'                     => Dtr::class,
             'cash_reconciliations'    => CashReconciliation::class,
             'lemon_juice_extractions' => LemonJuiceExtraction::class,
+            'void_requests'           => VoidRequest::class,
         ];
 
         $data    = [];
