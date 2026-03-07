@@ -13,14 +13,14 @@ class DatabaseSeeder extends Seeder
     {
         $subscriber = Subscriber::create([
             'name' => 'Default Business',
-            'email' => 'admin@business.com',
+            'email' => 'pjc1john@gmail.com',
         ]);
 
         User::create([
             'subscriber_id' => $subscriber->id,
             'username' => 'admin',
             'name' => 'Administrator',
-            'email' => 'admin@business.com',
+            'email' => 'pjc1john@gmail.com',
             'password' => Hash::make('password'),
             'role_id' => 1,
         ]);
