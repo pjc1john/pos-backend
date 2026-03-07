@@ -342,6 +342,10 @@ class SyncController extends Controller
             }
         }
 
+        if ($table === 'products') {
+            $data = $this->processProductImage($data);
+        }
+
         $model = $modelClass::create($data);
 
         SyncLog::create([
@@ -389,6 +393,10 @@ class SyncController extends Controller
                     'server_data' => $model->toArray(),
                 ],
             ];
+        }
+
+        if ($table === 'products') {
+            $data = $this->processProductImage($data);
         }
 
         $model->update($data);
@@ -453,6 +461,29 @@ class SyncController extends Controller
                 'server_updated_at' => now()->toIso8601String(),
             ],
         ];
+    }
+
+    /**
+     * Convert a base64 image_url to a stored file path for products.
+     * If image_url is already a server path or null, it is left unchanged.
+     */
+    private function processProductImage(array $data): array
+    {
+        $imageUrl = $data['image_url'] ?? null;
+
+        if (empty($imageUrl) || str_starts_with($imageUrl, '/storage/')) {
+            return $data;
+        }
+
+        // Looks like base64 — decode and store as a file
+        $decoded = base64_decode($imageUrl, strict: false);
+        if ($decoded !== false && strlen($decoded) > 100) {
+            $filename = \Illuminate\Support\Str::uuid() . '.jpg';
+            Storage::disk('public')->put('product-images/' . $filename, $decoded);
+            $data['image_url'] = '/storage/product-images/' . $filename;
+        }
+
+        return $data;
     }
 
     /**
