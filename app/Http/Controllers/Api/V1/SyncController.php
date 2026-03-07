@@ -236,6 +236,35 @@ class SyncController extends Controller
             unset($data['inventory_item_sync_id']);
         }
 
+        // Resolve user_sync_id → user_id (or fallback to user_email) for staff_branches and staff_attendance
+        if (in_array($table, ['staff_branches', 'staff_attendance'])) {
+            if (! empty($data['user_sync_id'])) {
+                $user = User::where('sync_id', $data['user_sync_id'])->first();
+                if ($user) {
+                    $data['user_id'] = $user->id;
+                }
+                unset($data['user_sync_id']);
+            } elseif (! empty($data['user_email'])) {
+                // Fallback: resolve by email when user hasn't synced yet and has no sync_id
+                $user = User::where('email', $data['user_email'])
+                    ->where('subscriber_id', $data['subscriber_id'] ?? $subscriberId)
+                    ->first();
+                if ($user) {
+                    $data['user_id'] = $user->id;
+                }
+                unset($data['user_email']);
+            }
+        }
+
+        // Resolve delivery_sync_id → delivery_id for delivery_items
+        if ($table === 'delivery_items' && ! empty($data['delivery_sync_id'])) {
+            $delivery = Delivery::where('sync_id', $data['delivery_sync_id'])->first();
+            if ($delivery) {
+                $data['delivery_id'] = $delivery->id;
+            }
+            unset($data['delivery_sync_id']);
+        }
+
         // Resolve branch_sync_id → branch_id for all branch-scoped tables
         $tablesWithBranchId = [
             'expenses',

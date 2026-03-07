@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('sync_config', function (Blueprint $table) {
+        Schema::create('sync_configs', function (Blueprint $table) {
             $table->id();
             $table->uuid('sync_id')->nullable()->unique();
             $table->unsignedBigInteger('subscriber_id');
@@ -24,6 +24,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('sync_config');
+        Schema::dropIfExists('sync_configs');
     }
 };
