@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Models\BusinessSetting;
 use App\Models\CashReconciliation;
+use App\Models\Delivery;
+use App\Models\DeliveryItem;
 use App\Models\Discount;
 use App\Models\Dtr;
 use App\Models\Expense;
@@ -18,6 +21,9 @@ use App\Models\ProductVariant;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SalaryRecord;
+use App\Models\StaffAttendance;
+use App\Models\StaffBranch;
+use App\Models\SyncConfig;
 use App\Models\SyncLog;
 use App\Models\User;
 use App\Models\VariantInventoryLink;
@@ -47,6 +53,12 @@ class SyncController extends Controller
         'lemon_juice_extractions'   => LemonJuiceExtraction::class,
         'void_requests'             => VoidRequest::class,
         'salary_records'            => SalaryRecord::class,
+        'deliveries'                => Delivery::class,
+        'delivery_items'            => DeliveryItem::class,
+        'business_settings'         => BusinessSetting::class,
+        'staff_branches'            => StaffBranch::class,
+        'staff_attendance'          => StaffAttendance::class,
+        'sync_config'               => SyncConfig::class,
     ];
 
     private array $stripFields = [
@@ -241,6 +253,12 @@ class SyncController extends Controller
             'lemon_juice_extractions',
             'void_requests',
             'salary_records',
+            'deliveries',
+            'delivery_items',
+            'business_settings',
+            'staff_branches',
+            'staff_attendance',
+            'sync_config',
         ];
         if (in_array($table, $tablesWithBranchId) && ! empty($data['branch_sync_id'])) {
             $branch = Branch::where('sync_id', $data['branch_sync_id'])->first();
@@ -519,6 +537,12 @@ class SyncController extends Controller
             'lemon_juice_extractions' => LemonJuiceExtraction::class,
             'void_requests'           => VoidRequest::class,
             'salary_records'          => SalaryRecord::class,
+            'deliveries'              => Delivery::class,
+            'delivery_items'          => DeliveryItem::class,
+            'business_settings'       => BusinessSetting::class,
+            'staff_branches'          => StaffBranch::class,
+            'staff_attendance'        => StaffAttendance::class,
+            'sync_config'             => SyncConfig::class,
         ];
 
         $data    = [];
