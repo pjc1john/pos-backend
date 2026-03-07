@@ -556,8 +556,8 @@ class SyncController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $data,
-            'deleted' => $deleted,
+            'data'    => empty($data) ? new \stdClass() : $data,
+            'deleted' => empty($deleted) ? new \stdClass() : $deleted,
         ]);
     }
 }
