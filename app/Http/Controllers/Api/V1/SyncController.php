@@ -17,6 +17,7 @@ use App\Models\ProductRecipeItem;
 use App\Models\ProductVariant;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\SalaryRecord;
 use App\Models\SyncLog;
 use App\Models\User;
 use App\Models\VariantInventoryLink;
@@ -45,6 +46,7 @@ class SyncController extends Controller
         'variant_inventory_links'   => VariantInventoryLink::class,
         'lemon_juice_extractions'   => LemonJuiceExtraction::class,
         'void_requests'             => VoidRequest::class,
+        'salary_records'            => SalaryRecord::class,
     ];
 
     private array $stripFields = [
@@ -238,6 +240,7 @@ class SyncController extends Controller
             'variant_inventory_links',
             'lemon_juice_extractions',
             'void_requests',
+            'salary_records',
         ];
         if (in_array($table, $tablesWithBranchId) && ! empty($data['branch_sync_id'])) {
             $branch = Branch::where('sync_id', $data['branch_sync_id'])->first();
@@ -484,6 +487,7 @@ class SyncController extends Controller
             'cash_reconciliations'    => CashReconciliation::class,
             'lemon_juice_extractions' => LemonJuiceExtraction::class,
             'void_requests'           => VoidRequest::class,
+            'salary_records'          => SalaryRecord::class,
         ];
 
         $data    = [];

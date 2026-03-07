@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\CashReconciliationController;
 use App\Http\Controllers\Api\V1\DiscountController;
 use App\Http\Controllers\Api\V1\DtrController;
 use App\Http\Controllers\Api\V1\ExpenseController;
+use App\Http\Controllers\Api\V1\SalaryRecordController;
 use App\Http\Controllers\Api\V1\InventoryItemController;
 use App\Http\Controllers\Api\V1\LemonJuiceExtractionController;
 use App\Http\Controllers\Api\V1\StaffController;
@@ -79,6 +80,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/dtr', [DtrController::class, 'store']);
         Route::put('/dtr/{syncId}', [DtrController::class, 'update']);
         Route::delete('/dtr/{syncId}', [DtrController::class, 'destroy']);
+
+        // Salary Records
+        Route::get('/salary-records', [SalaryRecordController::class, 'index']);
+        Route::post('/salary-record', [SalaryRecordController::class, 'store']);
+        Route::put('/salary-record/{syncId}', [SalaryRecordController::class, 'update']);
+        Route::delete('/salary-record/{syncId}', [SalaryRecordController::class, 'destroy']);
 
         // Lemon Juice Extractions
         Route::get('/lemon-juice-extractions', [LemonJuiceExtractionController::class, 'index']);
