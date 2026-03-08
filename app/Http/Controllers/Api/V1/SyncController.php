@@ -578,7 +578,17 @@ class SyncController extends Controller
     public function pull(Request $request): JsonResponse
     {
         $subscriberId = $request->user()->subscriber_id;
-        $updatedSince = $request->query('updated_since');
+        $updatedSince = $request->query('updated_since'); // conver to manila time zone
+        if ($updatedSince) {
+            try {
+                $updatedSince = \Carbon\Carbon::parse($updatedSince)->timezone('Asia/Manila');
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid updated_since timestamp',
+                ], 400);
+            }
+        }
         Storage::disk('local')->put("pullsync.json", json_encode($request->all()));
         // Tables the POS reads from the server.
         // Products are handled separately by the dedicated /api/v1/products endpoint.
