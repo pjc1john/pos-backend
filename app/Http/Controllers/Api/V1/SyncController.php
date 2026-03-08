@@ -624,7 +624,23 @@ class SyncController extends Controller
 
             $records = $query->get();
             if ($records->isNotEmpty()) {
-                $data[$tableName] = $records->toArray();
+                // For staff_branches, enrich each record with user_sync_id and
+                // branch_sync_id so the POS can resolve server IDs to local IDs.
+                if ($tableName === 'staff_branches') {
+                    $userIds   = $records->pluck('user_id')->filter()->unique();
+                    $branchIds = $records->pluck('branch_id')->filter()->unique();
+                    $userSyncIds   = User::whereIn('id', $userIds)->pluck('sync_id', 'id');
+                    $branchSyncIds = Branch::whereIn('id', $branchIds)->pluck('sync_id', 'id');
+
+                    $data[$tableName] = $records->map(function ($r) use ($userSyncIds, $branchSyncIds) {
+                        $arr = $r->toArray();
+                        $arr['user_sync_id']   = $userSyncIds[$r->user_id]     ?? null;
+                        $arr['branch_sync_id'] = $branchSyncIds[$r->branch_id] ?? null;
+                        return $arr;
+                    })->values()->toArray();
+                } else {
+                    $data[$tableName] = $records->toArray();
+                }
             }
 
             // Collect soft-deleted records so the POS can remove them locally
