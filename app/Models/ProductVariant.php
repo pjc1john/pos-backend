@@ -12,6 +12,10 @@ class ProductVariant extends Model
 {
     use HasFactory, SoftDeletes;
 
+    // Touch the parent product whenever a variant is created, updated, or deleted
+    // so incremental pull syncs detect the change and refresh the variant list.
+    protected $touches = ['product'];
+
     protected $fillable = [
         'product_id',
         'product_sync_id',
