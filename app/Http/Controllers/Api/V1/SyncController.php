@@ -591,7 +591,11 @@ class SyncController extends Controller
             }
 
             // Collect soft-deleted records so the POS can remove them locally
-            if ($updatedSince) {
+            $usesSoftDeletes = in_array(
+                \Illuminate\Database\Eloquent\SoftDeletes::class,
+                class_uses_recursive($modelClass)
+            );
+            if ($updatedSince && $usesSoftDeletes) {
                 $deletedIds = $modelClass::withTrashed()
                     ->where('subscriber_id', $subscriberId)
                     ->whereNotNull('deleted_at')
