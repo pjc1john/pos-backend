@@ -609,6 +609,7 @@ class SyncController extends Controller
             'staff_branches'          => StaffBranch::class,
             'staff_attendance'        => StaffAttendance::class,
             'sync_config'             => SyncConfig::class,
+            'product_recipe_items'    => ProductRecipeItem::class,
         ];
 
         $data    = [];
@@ -636,6 +637,22 @@ class SyncController extends Controller
                         $arr = $r->toArray();
                         $arr['user_sync_id']   = $userSyncIds[$r->user_id]     ?? null;
                         $arr['branch_sync_id'] = $branchSyncIds[$r->branch_id] ?? null;
+                        return $arr;
+                    })->values()->toArray();
+                } elseif ($tableName === 'product_recipe_items') {
+                    // Enrich with sync_ids so the POS can resolve server IDs to local IDs.
+                    $productIds = $records->pluck('product_id')->filter()->unique();
+                    $variantIds = $records->pluck('variant_id')->filter()->unique();
+                    $invItemIds = $records->pluck('inventory_item_id')->filter()->unique();
+                    $productSyncIds  = Product::whereIn('id', $productIds)->pluck('sync_id', 'id');
+                    $variantSyncIds  = ProductVariant::withTrashed()->whereIn('id', $variantIds)->pluck('sync_id', 'id');
+                    $invItemSyncIds  = InventoryItem::whereIn('id', $invItemIds)->pluck('sync_id', 'id');
+
+                    $data[$tableName] = $records->map(function ($r) use ($productSyncIds, $variantSyncIds, $invItemSyncIds) {
+                        $arr = $r->toArray();
+                        $arr['product_sync_id']        = $r->product_id        ? ($productSyncIds[$r->product_id]              ?? null) : null;
+                        $arr['variant_sync_id']        = $r->variant_id        ? ($variantSyncIds[$r->variant_id]              ?? null) : null;
+                        $arr['inventory_item_sync_id'] = $r->inventory_item_id ? ($invItemSyncIds[$r->inventory_item_id]       ?? null) : null;
                         return $arr;
                     })->values()->toArray();
                 } else {
