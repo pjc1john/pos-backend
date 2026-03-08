@@ -8,7 +8,6 @@ use Illuminate\Support\Str;
 
 class StaffBranch extends Model
 {
-    use SoftDeletes;
 
     protected $fillable = [
         'sync_id',
