@@ -393,6 +393,33 @@ class SyncController extends Controller
             $data = $this->processProductImage($data);
         }
 
+        // For staff_branches: if a soft-deleted row exists for the same
+        // (subscriber_id, user_id, branch_id), restore it instead of inserting
+        // a new one (which would violate the unique constraint).
+        if ($table === 'staff_branches' && ! empty($data['user_id']) && ! empty($data['branch_id'])) {
+            $trashed = $modelClass::withTrashed()
+                ->where('subscriber_id', $data['subscriber_id'] ?? 0)
+                ->where('user_id', $data['user_id'])
+                ->where('branch_id', $data['branch_id'])
+                ->whereNotNull('deleted_at')
+                ->first();
+
+            if ($trashed) {
+                $trashed->restore();
+                $trashed->update($data);
+
+                return [
+                    'status' => 'synced',
+                    'data'   => [
+                        'table'             => $table,
+                        'local_id'          => $localId,
+                        'server_id'         => $trashed->sync_id,
+                        'server_updated_at' => $trashed->updated_at->toIso8601String(),
+                    ],
+                ];
+            }
+        }
+
         $model = $modelClass::create($data);
 
         SyncLog::create([
